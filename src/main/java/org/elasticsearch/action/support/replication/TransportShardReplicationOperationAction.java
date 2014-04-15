@@ -116,6 +116,10 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
 
     protected abstract PrimaryResponse<Response, ReplicaRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest);
 
+    protected void preProcessReplicaRequest(ShardRouting shard, ReplicaOperationRequest shardRequest) {
+
+    }
+
     protected abstract void shardOperationOnReplica(ReplicaOperationRequest shardRequest);
 
     /**
@@ -707,6 +711,7 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
             }
 
             final ReplicaOperationRequest shardRequest = new ReplicaOperationRequest(shardIt.shardId().id(), response.replicaRequest());
+            preProcessReplicaRequest(shard, shardRequest);
             if (!nodeId.equals(clusterState.nodes().localNodeId())) {
                 final DiscoveryNode node = clusterState.nodes().get(nodeId);
                 transportService.sendRequest(node, transportReplicaAction, shardRequest, transportOptions, new EmptyTransportResponseHandler(ThreadPool.Names.SAME) {
