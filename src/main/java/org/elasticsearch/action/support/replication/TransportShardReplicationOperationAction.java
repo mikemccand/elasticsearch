@@ -116,7 +116,7 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
 
     protected abstract PrimaryResponse<Response, ReplicaRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest);
 
-    protected void preProcessReplicaRequest(ShardRouting shard, ReplicaOperationRequest shardRequest) {
+    protected void preProcessReplication(ShardIterator shardIt, ReplicaRequest request) {
 
     }
 
@@ -594,7 +594,9 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
                 listener.onResponse(response.response());
                 return;
             }
-
+            shardIt.reset();
+            // make sure to call this on the state when we did the initial primary operation on
+            preProcessReplication(shardIt, response.replicaRequest());
             ShardRouting shard;
 
             // we double check on the state, if it got changed we need to make sure we take the latest one cause
@@ -630,6 +632,9 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
                         break;
                     }
                 }
+                shardIt.reset();
+                // we need to call it again since state has changed
+                preProcessReplication(shardIt, response.replicaRequest());
             }
 
             // initialize the counter
@@ -711,7 +716,6 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
             }
 
             final ReplicaOperationRequest shardRequest = new ReplicaOperationRequest(shardIt.shardId().id(), response.replicaRequest());
-            preProcessReplicaRequest(shard, shardRequest);
             if (!nodeId.equals(clusterState.nodes().localNodeId())) {
                 final DiscoveryNode node = clusterState.nodes().get(nodeId);
                 transportService.sendRequest(node, transportReplicaAction, shardRequest, transportOptions, new EmptyTransportResponseHandler(ThreadPool.Names.SAME) {
