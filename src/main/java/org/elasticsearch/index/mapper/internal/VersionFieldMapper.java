@@ -117,7 +117,8 @@ public class VersionFieldMapper extends AbstractFieldMapper<Long> implements Int
         // see UidFieldMapper.parseCreateField
         final Field version = fieldCache.get();
         context.version(version);
-        fields.add(version);
+        // nocommit
+        //fields.add(version);
     }
 
     @Override
