@@ -102,7 +102,7 @@ final class PerThreadIDAndVersionLookup {
 
     /** Return null if id is not found. */
     public DocIdAndVersion lookup(BytesRef id) throws IOException {
-        System.out.println("lookup id=" + id + " numSegs=" + numSegs);
+        System.out.println("lookup id=" + id.utf8ToString() + " numSegs=" + numSegs);
         for(int seg=0;seg<numSegs;seg++) {
             if (termsEnums[seg].seekExact(id)) {
               
