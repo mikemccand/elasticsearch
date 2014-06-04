@@ -102,7 +102,7 @@ final class PerThreadIDAndVersionLookup {
 
     /** Return null if id is not found. */
     public DocIdAndVersion lookup(BytesRef id) throws IOException {
-        System.out.println("lookup id=" + id.utf8ToString() + " numSegs=" + numSegs);
+        //System.out.println("lookup id=" + id.utf8ToString() + " numSegs=" + numSegs);
         for(int seg=0;seg<numSegs;seg++) {
             if (termsEnums[seg].seekExact(id)) {
               
@@ -114,10 +114,10 @@ final class PerThreadIDAndVersionLookup {
                 }
                 
                 if (docID != DocsEnum.NO_MORE_DOCS) {
-                    System.out.println("  not deleted: version=" + termsEnums[seg].getVersion());
+                    //System.out.println("  not deleted: version=" + termsEnums[seg].getVersion());
                     return new DocIdAndVersion(docID, termsEnums[seg].getVersion(), readerContexts[seg]);
                 } else {
-                    System.out.println("  deleted");
+                    //System.out.println("  deleted");
                     assert hasDeletions;
                     continue;
                 }

@@ -458,7 +458,7 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
             // the mappers somehow?
             BytesRef payload = new BytesRef(new byte[8]);
             IDVersionPostingsFormat.longToBytes(updatedVersion, payload);
-            System.out.println("create _uid2 id=" + create.uid().text() + " version=" + updatedVersion);
+            //System.out.println("create _uid2 id=" + create.uid().text() + " version=" + updatedVersion);
             create.docs().get(0).add(new StringAndPayloadField("_uid2", create.uid().text(), payload));
 
             if (create.docs().size() > 1) {
@@ -525,7 +525,7 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
             // the mappers somehow?
             BytesRef payload = new BytesRef(new byte[8]);
             IDVersionPostingsFormat.longToBytes(updatedVersion, payload);
-            System.out.println("index _uid2 id=" + index.uid().text() + " version=" + updatedVersion);
+            //System.out.println("index _uid2 id=" + index.uid().text() + " version=" + updatedVersion);
             index.docs().get(0).add(new StringAndPayloadField("_uid2", index.uid().text(), payload));
 
             if (currentVersion == Versions.NOT_FOUND) {
