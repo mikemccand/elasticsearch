@@ -32,6 +32,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.google.common.collect.Lists;
 import org.apache.lucene.index.*;
 import org.apache.lucene.index.IndexWriter.IndexReaderWarmer;
 import org.apache.lucene.search.IndexSearcher;
@@ -68,6 +69,8 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.analysis.AnalysisService;
 import org.elasticsearch.index.codec.CodecService;
+import org.elasticsearch.index.codec.postingsformat.idversion.IDVersionPostingsFormat;
+import org.elasticsearch.index.codec.postingsformat.idversion.StringAndPayloadField;
 import org.elasticsearch.index.deletionpolicy.SnapshotDeletionPolicy;
 import org.elasticsearch.index.deletionpolicy.SnapshotIndexCommit;
 import org.elasticsearch.index.engine.*;
@@ -89,7 +92,6 @@ import org.elasticsearch.index.translog.TranslogStreams;
 import org.elasticsearch.indices.warmer.IndicesWarmer;
 import org.elasticsearch.indices.warmer.InternalIndicesWarmer;
 import org.elasticsearch.threadpool.ThreadPool;
-import com.google.common.collect.Lists;
 
 /**
  *
@@ -452,6 +454,12 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
 
             create.updateVersion(updatedVersion);
 
+            // nocommit this is total hack!!  need to use
+            // the mappers somehow?
+            BytesRef payload = new BytesRef(new byte[8]);
+            IDVersionPostingsFormat.longToBytes(updatedVersion, payload);
+            create.docs().get(0).add(new StringAndPayloadField("_uid2", create.uid().text(), payload));
+
             if (create.docs().size() > 1) {
                 writer.addDocuments(create.docs(), create.analyzer());
             } else {
@@ -511,6 +519,13 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
 
 
             index.updateVersion(updatedVersion);
+
+            // nocommit this is total hack!!  need to use
+            // the mappers somehow?
+            BytesRef payload = new BytesRef(new byte[8]);
+            IDVersionPostingsFormat.longToBytes(updatedVersion, payload);
+            index.docs().get(0).add(new StringAndPayloadField("_uid2", index.uid().text(), payload));
+
             if (currentVersion == Versions.NOT_FOUND) {
                 // document does not exists, we can optimize for create
                 index.created(true);

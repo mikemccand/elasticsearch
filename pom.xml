@@ -1102,6 +1102,8 @@
                                 <!-- start exclude for FilteredQuery -->
                                 <exclude>org/elasticsearch/common/lucene/search/XFilteredQuery.class</exclude>
                                 <!-- end exclude for FilteredQuery -->
+				<!-- nocommit fixme -->
+                                <exclude>org/elasticsearch/index/codec/postingsformat/idversion/StringAndPayloadField.class</exclude>
                             </excludes>
                             <bundledSignatures>
                                 <!-- This will automatically choose the right signatures based on 'targetVersion': -->
@@ -1291,6 +1293,8 @@
                   <exclude>src/main/java/org/elasticsearch/common/lucene/search/XFilteredQuery.java</exclude>
                   <exclude>src/main/java/org/apache/lucene/queryparser/XSimpleQueryParser.java</exclude>
                   <exclude>src/main/java/org/apache/lucene/**/X*.java</exclude>
+		  <!-- nocommit -->
+                  <exclude>src/main/java/org/elasticsearch/index/codec/postingsformat/idversion/*.java</exclude>
                   <!-- t-digest -->
                   <exclude>src/main/java/org/elasticsearch/search/aggregations/metrics/percentiles/tdigest/TDigestState.java</exclude>
                   <exclude>src/test/java/org/elasticsearch/search/aggregations/metrics/GroupTree.java</exclude>

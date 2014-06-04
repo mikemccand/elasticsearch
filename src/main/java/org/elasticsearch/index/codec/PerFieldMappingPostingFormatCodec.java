@@ -42,6 +42,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene46Codec {
     private final MapperService mapperService;
     private final PostingsFormat defaultPostingFormat;
     private final DocValuesFormat defaultDocValuesFormat;
+    private final PostingsFormat idVersionPF = PostingsFormat.forName("IDVersion");
 
     public PerFieldMappingPostingFormatCodec(MapperService mapperService, PostingsFormat defaultPostingFormat, DocValuesFormat defaultDocValuesFormat, ESLogger logger) {
         this.mapperService = mapperService;
@@ -52,6 +53,10 @@ public class PerFieldMappingPostingFormatCodec extends Lucene46Codec {
 
     @Override
     public PostingsFormat getPostingsFormatForField(String field) {
+        // nocommit total hack!
+        if (field.equals("_uid2")) {
+            return idVersionPF;
+        }
         final FieldMappers indexName = mapperService.indexName(field);
         if (indexName == null) {
             logger.warn("no index mapper found for field: [{}] returning default postings format", field);

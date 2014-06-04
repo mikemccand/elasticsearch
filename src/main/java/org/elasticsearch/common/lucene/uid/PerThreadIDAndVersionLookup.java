@@ -38,6 +38,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.lucene.uid.Versions.DocIdAndVersion;
+import org.elasticsearch.index.codec.postingsformat.idversion.IDVersionSegmentTermsEnum;
 import org.elasticsearch.index.mapper.internal.UidFieldMapper;
 import org.elasticsearch.index.mapper.internal.VersionFieldMapper;
 
@@ -52,7 +53,7 @@ import org.elasticsearch.index.mapper.internal.VersionFieldMapper;
 final class PerThreadIDAndVersionLookup {
 
     private final AtomicReaderContext[] readerContexts;
-    private final TermsEnum[] termsEnums;
+    private final IDVersionSegmentTermsEnum[] termsEnums;
     private final DocsEnum[] docsEnums;
     // Only used for back compat, to lookup a version from payload:
     private final DocsAndPositionsEnum[] posEnums;
@@ -67,7 +68,7 @@ final class PerThreadIDAndVersionLookup {
         List<AtomicReaderContext> leaves = new ArrayList<>(r.leaves());
 
         readerContexts = leaves.toArray(new AtomicReaderContext[leaves.size()]);
-        termsEnums = new TermsEnum[leaves.size()];
+        termsEnums = new IDVersionSegmentTermsEnum[leaves.size()];
         docsEnums = new DocsEnum[leaves.size()];
         posEnums = new DocsAndPositionsEnum[leaves.size()];
         liveDocs = new Bits[leaves.size()];
@@ -81,11 +82,12 @@ final class PerThreadIDAndVersionLookup {
             AtomicReaderContext readerContext = leaves.get(i);
             Fields fields = readerContext.reader().fields();
             if (fields != null) {
-                Terms terms = fields.terms(UidFieldMapper.NAME);
+                // Terms terms = fields.terms(UidFieldMapper.NAME);
+                Terms terms = fields.terms("_uid2");
                 if (terms != null) {
                     readerContexts[numSegs] = readerContext;
                     hasPayloads[numSegs] = terms.hasPayloads();
-                    termsEnums[numSegs] = terms.iterator(null);
+                    termsEnums[numSegs] = (IDVersionSegmentTermsEnum) terms.iterator(null);
                     assert termsEnums[numSegs] != null;
                     liveDocs[numSegs] = readerContext.reader().getLiveDocs();
                     hasDeletions |= readerContext.reader().hasDeletions();
@@ -102,7 +104,22 @@ final class PerThreadIDAndVersionLookup {
     public DocIdAndVersion lookup(BytesRef id) throws IOException {
         for(int seg=0;seg<numSegs;seg++) {
             if (termsEnums[seg].seekExact(id)) {
+              
+                // nocommit need back compat logic again?
+                DocsEnum docs = docsEnums[seg] = termsEnums[seg].docs(liveDocs[seg], docsEnums[seg], 0);
+                int docID = DocsEnum.NO_MORE_DOCS;
+                for (int d = docs.nextDoc(); d != DocsEnum.NO_MORE_DOCS; d = docs.nextDoc()) {
+                    docID = d;
+                }
+                
+                if (docID != DocsEnum.NO_MORE_DOCS) {
+                    return new DocIdAndVersion(docID, termsEnums[seg].getVersion(), readerContexts[seg]);
+                } else {
+                    assert hasDeletions;
+                    continue;
+                }
 
+                /*
                 NumericDocValues segVersions = versions[seg];
                 if (segVersions != null || hasPayloads[seg] == false) {
                     // Use NDV to retrieve the version, in which case we only need DocsEnum:
@@ -140,6 +157,7 @@ final class PerThreadIDAndVersionLookup {
                         return new DocIdAndVersion(d, Numbers.bytesToLong(payload), readerContexts[seg]);
                     }
                 }
+                */
             }
         }
 
