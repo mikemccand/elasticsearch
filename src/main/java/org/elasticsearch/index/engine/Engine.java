@@ -387,6 +387,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
         private final boolean canHaveDuplicates;
 
         private final long startTime;
+        private long sequenceID;
         private long endTime;
 
         public IndexingOperation(DocumentMapper docMapper, Term uid, ParsedDocument doc, long version, VersionType versionType, Origin origin, long startTime, boolean canHaveDuplicates) {
@@ -448,6 +449,14 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
         public void updateVersion(long version) {
             this.version = version;
             this.doc.version().setLongValue(version);
+        }
+
+        public long sequenceId() {
+            return sequenceId;
+        }
+
+        public void setSequenceId(long sequenceId) {
+            this.sequenceId = sequenceId;
         }
 
         public VersionType versionType() {

@@ -19,7 +19,19 @@
 
 package org.elasticsearch.index.engine.internal;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.index.IndexWriter.IndexReaderWarmer;
 import org.apache.lucene.search.IndexSearcher;
@@ -76,18 +88,7 @@ import org.elasticsearch.index.translog.TranslogStreams;
 import org.elasticsearch.indices.warmer.IndicesWarmer;
 import org.elasticsearch.indices.warmer.InternalIndicesWarmer;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import com.google.common.collect.Lists;
 
 /**
  *
@@ -122,7 +123,6 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
     private final AnalysisService analysisService;
     private final SimilarityService similarityService;
     private final CodecService codecService;
-
 
     private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
     private final InternalLock readLock = new InternalLock(rwl.readLock());
@@ -165,6 +165,8 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
     private final Lock failEngineLock = new ReentrantLock();
     private final CopyOnWriteArrayList<FailedEngineListener> failedEngineListeners = new CopyOnWriteArrayList<>();
 
+    // nocommit must init/read this from index/translog/something: cannot start at 0
+    private final AtomicLong nextSequenceId = new AtomicLong();
     private final AtomicLong translogIdGenerator = new AtomicLong();
     private final AtomicBoolean versionMapRefreshPending = new AtomicBoolean();
 
@@ -465,6 +467,18 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
 
         create.updateVersion(updatedVersion);
 
+        // nocommit response should include sequenceId?
+
+        long sequenceId = nextSequenceId.incrementAndGet();
+        create.setSequenceId(sequenceId);
+
+        // nocommit is it correct to add it to parent & children?
+        for (Document doc : create.docs()) {
+            // nocommit do we need better abstraction...  use LongFieldMapper? at least the field name should be a constant somewhere!
+            // nocommit this field needs to be in mappings somehow?
+            doc.add(new LongField("_sequenceId", sequenceId, true));
+        }
+
         if (create.docs().size() > 1) {
             writer.addDocuments(create.docs(), create.analyzer());
         } else {
@@ -547,6 +561,16 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
             }
             updatedVersion = index.versionType().updateVersion(currentVersion, expectedVersion);
 
+            long sequenceId = nextSequenceId.incrementAndGet();
+            index.setSequenceId(sequenceId);
+
+            // nocommit is it correct to add it to parent & children?
+            for (Document doc : create.docs()) {
+                // nocommit do we need better abstraction...  use LongFieldMapper? at least the field name should be a constant somewhere!
+                // nocommit this field needs to be in mappings somehow?
+                doc.add(new LongField("_sequenceI", sequenceId, true));
+            }
+
             index.updateVersion(updatedVersion);
             if (currentVersion == Versions.NOT_FOUND) {
                 // document does not exists, we can optimize for create
@@ -624,6 +648,13 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
                     throw new VersionConflictEngineException(shardId, delete.type(), delete.id(), currentVersion, expectedVersion);
                 }
             }
+
+            // nocommit must pass sequenceId to xlog
+
+            // nocommit only pull this if we actually deleted?
+            long sequenceId = nextSequenceId.incrementAndGet();
+            delete.setSequenceId(sequenceId);
+
             updatedVersion = delete.versionType().updateVersion(currentVersion, expectedVersion);
             final boolean found;
             if (currentVersion == Versions.NOT_FOUND) {
@@ -664,6 +695,9 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
             } else {
                 query = delete.query();
             }
+
+            long sequenceId = nextSequenceId.incrementAndGet();
+            delete.setSequenceId(sequenceId);
 
             writer.deleteDocuments(query);
             translog.add(new Translog.DeleteByQuery(delete));

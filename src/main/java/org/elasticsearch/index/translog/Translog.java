@@ -230,6 +230,8 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
 
         long estimateSize();
 
+        long sequenceID();
+
         Source readSource(StreamInput in) throws IOException;
     }
 
@@ -261,6 +263,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         private long ttl;
         private long version = Versions.MATCH_ANY;
         private VersionType versionType = VersionType.INTERNAL;
+        private long sequenceId;
 
         public Create() {
         }
@@ -275,6 +278,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             this.ttl = create.ttl();
             this.version = create.version();
             this.versionType = create.versionType();
+            this.sequenceId = create.sequenceId();
         }
 
         public Create(String type, String id, byte[] source) {
@@ -404,6 +408,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         private String parent;
         private long timestamp;
         private long ttl;
+        private long sequenceId;
 
         public Index() {
         }
@@ -418,6 +423,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             this.timestamp = index.timestamp();
             this.ttl = index.ttl();
             this.versionType = index.versionType();
+            this.sequenceId = index.sequenceId();
         }
 
         public Index(String type, String id, byte[] source) {
@@ -545,6 +551,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         private Term uid;
         private long version = Versions.MATCH_ANY;
         private VersionType versionType = VersionType.INTERNAL;
+        private long sequenceId;
 
         public Delete() {
         }
@@ -553,6 +560,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             this(delete.uid());
             this.version = delete.version();
             this.versionType = delete.versionType();
+            this.sequenceId = delete.sequenceId();
         }
 
         public Delete(Term uid) {
@@ -628,13 +636,14 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         }
 
         public DeleteByQuery(Engine.DeleteByQuery deleteByQuery) {
-            this(deleteByQuery.source(), deleteByQuery.filteringAliases(), deleteByQuery.types());
+            this(deleteByQuery.source(), deleteByQuery.filteringAliases(), deleteByQuery.types(), deleteByQuery.sequenceId());
         }
 
-        public DeleteByQuery(BytesReference source, String[] filteringAliases, String... types) {
+        public DeleteByQuery(BytesReference source, String[] filteringAliases, String... types, long sequenceId) {
             this.source = source;
             this.types = types == null ? Strings.EMPTY_ARRAY : types;
             this.filteringAliases = filteringAliases;
+            this.sequenceId = sequenceId;
         }
 
         @Override
