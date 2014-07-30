@@ -298,6 +298,10 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
                 }
                 translog.newTranslog(translogIdGenerator.get());
                 this.searcherManager = buildSearchManager(indexWriter);
+
+                // nocommit need to init nextSequenceId here?  we can get maxTerm from the field (if we index it), or we can maybe store it
+                // in SegmentInfos commit data, or in the xlog?
+
                 versionMap.setManager(searcherManager);
                 readLastCommittedSegmentsInfo();
             } catch (IOException e) {
@@ -708,6 +712,8 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
             maybeFailEngine(t, "delete_by_query");
             throw new DeleteByQueryFailedEngineException(shardId, delete, t);
         }
+
+        // nocommit need back compat for indices w/o sequence ids
 
         // TODO: This is heavy, since we refresh, but we must do this because we don't know which documents were in fact deleted (i.e., our
         // versionMap isn't updated), so we must force a cutover to a new reader to "see" the deletions:

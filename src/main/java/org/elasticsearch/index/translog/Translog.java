@@ -636,10 +636,10 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         }
 
         public DeleteByQuery(Engine.DeleteByQuery deleteByQuery) {
-            this(deleteByQuery.source(), deleteByQuery.filteringAliases(), deleteByQuery.types(), deleteByQuery.sequenceId());
+            this(deleteByQuery.source(), deleteByQuery.filteringAliases(), deleteByQuery.sequenceId(), deleteByQuery.types());
         }
 
-        public DeleteByQuery(BytesReference source, String[] filteringAliases, String... types, long sequenceId) {
+        public DeleteByQuery(BytesReference source, String[] filteringAliases, long sequenceId, String... types) {
             this.source = source;
             this.types = types == null ? Strings.EMPTY_ARRAY : types;
             this.filteringAliases = filteringAliases;

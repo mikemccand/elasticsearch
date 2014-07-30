@@ -354,6 +354,8 @@ public class FsTranslog extends AbstractIndexShardComponent implements Translog 
             out.seek(0);
             out.writeInt(size - 4);
 
+            // nocommit need to write sequenceId here somewhere?
+
             // seek back to end
             out.seek(size);
 
