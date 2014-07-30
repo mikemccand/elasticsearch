@@ -230,7 +230,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
 
         long estimateSize();
 
-        long sequenceID();
+        long sequenceId();
 
         Source readSource(StreamInput in) throws IOException;
     }
@@ -331,6 +331,11 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
 
         public VersionType versionType() {
             return versionType;
+        }
+
+        @Override
+        public long sequenceId() {
+            return sequenceId;
         }
 
         @Override
@@ -479,6 +484,11 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         }
 
         @Override
+        public long sequenceId() {
+            return sequenceId;
+        }
+
+        @Override
         public Source readSource(StreamInput in) throws IOException {
             readFrom(in);
             return new Source(source, routing, parent, timestamp, ttl);
@@ -596,6 +606,11 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         }
 
         @Override
+        public long sequenceId() {
+            return sequenceId;
+        }
+
+        @Override
         public Source readSource(StreamInput in) throws IOException {
             throw new ElasticsearchIllegalStateException("trying to read doc source from delete operation");
         }
@@ -631,6 +646,7 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
         @Nullable
         private String[] filteringAliases;
         private String[] types = Strings.EMPTY_ARRAY;
+        private long sequenceId;
 
         public DeleteByQuery() {
         }
@@ -666,6 +682,11 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
 
         public String[] types() {
             return this.types;
+        }
+
+        @Override
+        public long sequenceId() {
+            return sequenceId;
         }
 
         @Override

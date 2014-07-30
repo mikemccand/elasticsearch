@@ -137,7 +137,7 @@ public abstract class AbstractSimpleTranslogTests extends ElasticsearchTestCase 
         assertThat(snapshot.estimatedTotalOperations(), equalTo(3));
         snapshot.close();
 
-        translog.add(new Translog.DeleteByQuery(new BytesArray(new byte[]{4}), null));
+        translog.add(new Translog.DeleteByQuery(new BytesArray(new byte[]{4}), null, 0L));
         snapshot = translog.snapshot();
         MatcherAssert.assertThat(snapshot, TranslogSizeMatcher.translogSize(4));
         assertThat(snapshot.estimatedTotalOperations(), equalTo(4));
@@ -319,6 +319,7 @@ public abstract class AbstractSimpleTranslogTests extends ElasticsearchTestCase 
                                     op = new Translog.DeleteByQuery(
                                             new BytesArray(randomRealisticUnicodeOfLengthBetween(10, 400).getBytes("UTF-8")),
                                             new String[]{randomRealisticUnicodeOfLengthBetween(10, 400)},
+                                            0,
                                             "test");
                                     break;
                                 default:

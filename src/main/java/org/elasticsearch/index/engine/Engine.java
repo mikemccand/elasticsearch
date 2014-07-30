@@ -387,7 +387,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
         private final boolean canHaveDuplicates;
 
         private final long startTime;
-        private long sequenceID;
+        private long sequenceId;
         private long endTime;
 
         public IndexingOperation(DocumentMapper docMapper, Term uid, ParsedDocument doc, long version, VersionType versionType, Origin origin, long startTime, boolean canHaveDuplicates) {
@@ -572,6 +572,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
 
         private final long startTime;
         private long endTime;
+        private long sequenceId;
 
         public Delete(String type, String id, Term uid, long version, VersionType versionType, Origin origin, long startTime, boolean found) {
             this.type = type;
@@ -651,6 +652,14 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
         public long endTime() {
             return this.endTime;
         }
+
+        public long sequenceId() {
+            return sequenceId;
+        }
+
+        public void setSequenceId(long sequenceId) {
+            this.sequenceId = sequenceId;
+        }
     }
 
     static class DeleteByQuery {
@@ -664,6 +673,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
 
         private final long startTime;
         private long endTime;
+        private long sequenceId;
 
         public DeleteByQuery(Query query, BytesReference source, @Nullable String[] filteringAliases, @Nullable Filter aliasFilter, Filter parentFilter, Operation.Origin origin, long startTime, String... types) {
             this.query = query;
@@ -725,6 +735,14 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
          */
         public long endTime() {
             return this.endTime;
+        }
+
+        public long sequenceId() {
+            return sequenceId;
+        }
+
+        public void setSequenceId(long sequenceId) {
+            this.sequenceId = sequenceId;
         }
     }
 

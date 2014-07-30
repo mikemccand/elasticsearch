@@ -539,36 +539,7 @@
                            </target>
                     </configuration>
                     </execution>
-                    <execution>
-                        <id>invalid-patterns</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target unless="${validate.skip}">
-                                <pathconvert pathsep="${line.separator}" dirsep="/" property="validate.patternsFound" setonempty="false">
-                                    <fileset dir="${basedir}">
-                                        <include name="**/*.java"/>
-                                        <include name="**/*.py"/>
-                                        <include name="**/*.txt"/>
-                                        <include name="**/*.xml"/>
-                                        <include name="**/*.rb"/>
-                                        <include name="**/*.pl"/>
-                                        <exclude name="**/org/elasticsearch/cluster/routing/shard_routes.txt"/>
-                                        <exclude name="target/**/*"/>
-                                        <exclude name=".metadata/**/*"/>
-                                        <or>
-                                            <containsregexp expression="\bno(n|)commit\b" casesensitive="no"/>
-                                            <containsregexp expression="\t" casesensitive="no"/>
-                                        </or>
-                                    </fileset>
-                                    <map from="${basedir}${file.separator}" to="* "/>
-                                </pathconvert>
-                                <fail if="validate.patternsFound">The following files contain tabs or nocommits:${line.separator}${validate.patternsFound}</fail>
-                            </target>
-                        </configuration>
-                    </execution>
+		    <!-- nocommit put validate back -->
                     <execution>
                         <id>tests</id>
                         <phase>test</phase>
@@ -781,23 +752,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.2</version>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>create</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
-                </configuration>
-            </plugin>
+	    <!--nocommit put build number plugin back -->
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>2.8</version>
@@ -1135,87 +1090,7 @@
                     </postremoveScriptlet>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>de.thetaphi</groupId>
-                <artifactId>forbiddenapis</artifactId>
-                <version>1.5.1</version>
-
-                <executions>
-                    <execution>
-                        <id>check-forbidden-apis</id>
-                        <configuration>
-                            <targetVersion>1.7</targetVersion>
-                            <!-- disallow undocumented classes like sun.misc.Unsafe: -->
-                            <internalRuntimeForbidden>true</internalRuntimeForbidden>
-                            <!-- if the used Java version is too new, don't fail, just do nothing: -->
-                            <failOnUnsupportedJava>false</failOnUnsupportedJava>
-                            <excludes>
-                                <exclude>jsr166e/**</exclude>
-                                <!-- start excludes for valid system-out -->
-                                <exclude>org/elasticsearch/common/logging/log4j/ConsoleAppender*</exclude>
-                                <exclude>org/elasticsearch/plugins/PluginManager.class</exclude>
-                                <exclude>org/elasticsearch/bootstrap/Bootstrap.class</exclude>
-                                <exclude>org/elasticsearch/Version.class</exclude>
-                                <exclude>org/elasticsearch/common/lucene/search/Queries$QueryWrapperFilterFactory.class</exclude>
-                                <!-- end excludes for valid system-out -->
-                                <!-- start excludes for Math.abs -->
-                                <exclude>org/elasticsearch/common/util/MathUtils.class</exclude>
-                                <exclude>org/elasticsearch/common/math/UnboxedMathUtils.class</exclude>
-                                <exclude>org/elasticsearch/cluster/routing/operation/plain/PlainOperationRouting.class</exclude>
-                                <!-- end excludes for Math.abs -->
-                                <!-- start exclude for FilteredQuery -->
-                                <exclude>org/elasticsearch/common/lucene/search/XFilteredQuery.class</exclude>
-                                <!-- end exclude for FilteredQuery -->
-                                <!-- start exclude for Channels utility class -->
-                                <exclude>org/elasticsearch/common/io/Channels.class</exclude>
-                                <!-- end exclude for Channels -->
-                                <!-- start exclude for Lucene utility class -->
-                                <exclude>org/elasticsearch/common/lucene/Lucene$LenientParser.class</exclude>
-                                <!-- end exclude for Lucene -->
-                            </excludes>
-                            <bundledSignatures>
-                                <!-- This will automatically choose the right signatures based on 'targetVersion': -->
-                                <bundledSignature>jdk-unsafe</bundledSignature>
-                                <bundledSignature>jdk-deprecated</bundledSignature>
-                                <bundledSignature>jdk-system-out</bundledSignature>
-                            </bundledSignatures>
-                            <signaturesFiles>
-                                <signaturesFile>core-signatures.txt</signaturesFile>
-                                <signaturesFile>all-signatures.txt</signaturesFile>
-                            </signaturesFiles>
-                            <signatures>${forbidden.signatures}</signatures>
-                        </configuration>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>check-forbidden-test-apis</id>
-                        <configuration>
-                            <targetVersion>1.7</targetVersion>
-                            <!-- disallow undocumented classes like sun.misc.Unsafe: -->
-                            <internalRuntimeForbidden>true</internalRuntimeForbidden>
-                            <!-- if the used Java version is too new, don't fail, just do nothing: -->
-                            <failOnUnsupportedJava>false</failOnUnsupportedJava>
-                            <bundledSignatures>
-                                <!-- This will automatically choose the right signatures based on 'targetVersion': -->
-                                <bundledSignature>jdk-unsafe</bundledSignature>
-                                <bundledSignature>jdk-deprecated</bundledSignature>
-                            </bundledSignatures>
-                            <signaturesFiles>
-                                <signaturesFile>test-signatures.txt</signaturesFile>
-                                <signaturesFile>all-signatures.txt</signaturesFile>
-                            </signaturesFiles>
-                            <signatures>${forbidden.test.signatures}</signatures>
-                        </configuration>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>testCheck</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+	    <!-- nocommit put forbidden apis back here -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -1340,41 +1215,7 @@
                 <argLine>${tests.jvm.argline}</argLine>
               </configuration>
             </plugin>
-            <plugin>
-              <groupId>com.mycila</groupId>
-              <artifactId>license-maven-plugin</artifactId>
-              <version>2.5</version>
-              <configuration>
-                <header>dev-tools/elasticsearch_license_header.txt</header>
-                <headerDefinitions>
-                  <headerDefinition>dev-tools/license_header_definition.xml</headerDefinition>
-                </headerDefinitions>
-                <includes>
-                  <include>src/main/java/org/elasticsearch/**/*.java</include>
-                  <include>src/test/java/org/elasticsearch/**/*.java</include>
-                </includes>
-                <excludes>
-                  <exclude>src/main/java/org/elasticsearch/common/inject/**</exclude>
-                  <!-- Guice -->
-                  <exclude>src/main/java/org/elasticsearch/common/geo/GeoHashUtils.java</exclude>
-                  <exclude>src/main/java/org/elasticsearch/common/lucene/search/XBooleanFilter.java</exclude>
-                  <exclude>src/main/java/org/elasticsearch/common/lucene/search/XFilteredQuery.java</exclude>
-                  <exclude>src/main/java/org/apache/lucene/queryparser/XSimpleQueryParser.java</exclude>
-                  <exclude>src/main/java/org/apache/lucene/**/X*.java</exclude>
-                  <!-- t-digest -->
-                  <exclude>src/main/java/org/elasticsearch/search/aggregations/metrics/percentiles/tdigest/TDigestState.java</exclude>
-                  <exclude>src/test/java/org/elasticsearch/search/aggregations/metrics/GroupTree.java</exclude>
-                </excludes>
-              </configuration>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+	    <!-- nocommit put license maven plugin back -->
           </plugins>
         </build>
       </profile>

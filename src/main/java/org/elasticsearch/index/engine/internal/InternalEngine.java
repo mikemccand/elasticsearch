@@ -31,6 +31,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.index.IndexWriter.IndexReaderWarmer;
@@ -42,6 +43,7 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.ExceptionsHelper;
@@ -71,6 +73,7 @@ import org.elasticsearch.index.deletionpolicy.SnapshotDeletionPolicy;
 import org.elasticsearch.index.deletionpolicy.SnapshotIndexCommit;
 import org.elasticsearch.index.engine.*;
 import org.elasticsearch.index.indexing.ShardIndexingService;
+import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.merge.policy.ElasticsearchMergePolicy;
@@ -94,6 +97,9 @@ import com.google.common.collect.Lists;
  *
  */
 public class InternalEngine extends AbstractIndexShardComponent implements Engine {
+
+    // nocommit move somewhere more appropriate:
+    private static final String SEQUENCE_ID_FIELD = "_sequenceId";
 
     private volatile boolean failEngineOnCorruption;
     private volatile ByteSizeValue indexingBufferSize;
@@ -299,8 +305,24 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
                 translog.newTranslog(translogIdGenerator.get());
                 this.searcherManager = buildSearchManager(indexWriter);
 
-                // nocommit need to init nextSequenceId here?  we can get maxTerm from the field (if we index it), or we can maybe store it
-                // in SegmentInfos commit data, or in the xlog?
+                // nocommit: we could also just store maxSequenceId in the commit userData?
+
+                // nocommit but don't we also need to consult xlog?  when replaying from xlog on recovery, we must use the sequenceIds from
+                // it, not assign new ones...
+
+                // Initialize nextSequenceId to be 1+ max currently in the index:
+                IndexSearcher searcher = this.searcherManager.acquire();
+                try {
+                    Terms sequenceIdTerms = MultiFields.getTerms(searcher.getIndexReader(), SEQUENCE_ID_FIELD);
+                    // Could be null on pre-sequenceIds index:
+                    if (sequenceIdTerms != null) {
+                        long maxCurSequenceId = NumericUtils.getMaxLong(sequenceIdTerms);
+                        assert maxCurSequenceId >= 0;
+                        nextSequenceId.set(maxCurSequenceId+1);
+                    }
+                } finally {
+                    this.searcherManager.release(searcher);
+                }
 
                 versionMap.setManager(searcherManager);
                 readLastCommittedSegmentsInfo();
@@ -473,14 +495,18 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
 
         // nocommit response should include sequenceId?
 
+        // nocommit it's too late to make sequenceId here?  we need to do it higher up, so the doc that's sent to replicas already has it
+        // nocommit when replaying xlog we must use its sequenceId, not make our own here:
         long sequenceId = nextSequenceId.incrementAndGet();
         create.setSequenceId(sequenceId);
+
+        System.out.println("create: seqId=" + sequenceId);
 
         // nocommit is it correct to add it to parent & children?
         for (Document doc : create.docs()) {
             // nocommit do we need better abstraction...  use LongFieldMapper? at least the field name should be a constant somewhere!
             // nocommit this field needs to be in mappings somehow?
-            doc.add(new LongField("_sequenceId", sequenceId, true));
+            doc.add(new LongField(SEQUENCE_ID_FIELD, sequenceId, Field.Store.YES));
         }
 
         if (create.docs().size() > 1) {
@@ -565,16 +591,18 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
             }
             updatedVersion = index.versionType().updateVersion(currentVersion, expectedVersion);
 
+            // nocommit it's too late to make sequenceId here?  we need to do it higher up, so the doc that's sent to replicas already has it
+            // nocommit when replaying xlog we must use its sequenceId, not make our own here:
             long sequenceId = nextSequenceId.incrementAndGet();
             index.setSequenceId(sequenceId);
 
             // nocommit is it correct to add it to parent & children?
-            for (Document doc : create.docs()) {
+            for (Document doc : index.docs()) {
                 // nocommit do we need better abstraction...  use LongFieldMapper? at least the field name should be a constant somewhere!
                 // nocommit this field needs to be in mappings somehow?
-                doc.add(new LongField("_sequenceI", sequenceId, true));
+                doc.add(new LongField(SEQUENCE_ID_FIELD, sequenceId, Field.Store.YES));
             }
-
+            System.out.println("index: seqId=" + sequenceId + " docs=" + index.docs());
             index.updateVersion(updatedVersion);
             if (currentVersion == Versions.NOT_FOUND) {
                 // document does not exists, we can optimize for create
@@ -653,9 +681,8 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
                 }
             }
 
-            // nocommit must pass sequenceId to xlog
-
-            // nocommit only pull this if we actually deleted?
+            // nocommit it's too late to make sequenceId here?  we need to do it higher up, so the doc that's sent to replicas already has it
+            // nocommit when replaying xlog we must use its sequenceId, not make our own here:
             long sequenceId = nextSequenceId.incrementAndGet();
             delete.setSequenceId(sequenceId);
 
@@ -700,6 +727,8 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
                 query = delete.query();
             }
 
+            // nocommit it's too late to make sequenceId here?  we need to do it higher up, so the doc that's sent to replicas already has it
+            // nocommit when replaying xlog we must use its sequenceId, not make our own here:
             long sequenceId = nextSequenceId.incrementAndGet();
             delete.setSequenceId(sequenceId);
 
