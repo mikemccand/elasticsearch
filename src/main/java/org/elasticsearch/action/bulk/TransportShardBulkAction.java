@@ -453,11 +453,13 @@ public class TransportShardBulkAction extends TransportShardReplicationOperation
     }
 
     private WriteResult shardDeleteOperation(DeleteRequest deleteRequest, IndexShard indexShard) {
-        Engine.Delete delete = indexShard.prepareDelete(deleteRequest.type(), deleteRequest.id(), deleteRequest.version(), deleteRequest.versionType(), Engine.Operation.Origin.PRIMARY);
+        Engine.Delete delete = indexShard.prepareDelete(deleteRequest.type(), deleteRequest.id(), deleteRequest.version(), deleteRequest.versionType(),
+                                                        deleteRequest.sequenceId(), Engine.Operation.Origin.PRIMARY);
         indexShard.delete(delete);
-        // update the request with the version so it will go to the replicas
+        // update the request with the version and sequenceId so it will go to the replicas
         deleteRequest.versionType(delete.versionType().versionTypeForReplicationAndRecovery());
         deleteRequest.version(delete.version());
+        deleteRequest.sequenceId(delete.sequenceId());
 
         assert deleteRequest.versionType().validateVersionForWrites(deleteRequest.version());
 
@@ -587,7 +589,8 @@ public class TransportShardBulkAction extends TransportShardReplicationOperation
             } else if (item.request() instanceof DeleteRequest) {
                 DeleteRequest deleteRequest = (DeleteRequest) item.request();
                 try {
-                    Engine.Delete delete = indexShard.prepareDelete(deleteRequest.type(), deleteRequest.id(), deleteRequest.version(), deleteRequest.versionType(), Engine.Operation.Origin.REPLICA);
+                    Engine.Delete delete = indexShard.prepareDelete(deleteRequest.type(), deleteRequest.id(), deleteRequest.version(), deleteRequest.versionType(),
+                                                                    deleteRequest.sequenceId(), Engine.Operation.Origin.REPLICA);
                     indexShard.delete(delete);
                 } catch (Throwable e) {
                     // ignore, we are on backup

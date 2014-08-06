@@ -51,6 +51,7 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
     private boolean refresh;
     private long version = Versions.MATCH_ANY;
     private VersionType versionType = VersionType.INTERNAL;
+    private long sequenceId = -1;
 
     /**
      * Constructs a new delete request against the specified index. The {@link #type(String)} and {@link #id(String)}
@@ -199,6 +200,18 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
         return this.versionType;
     }
 
+    /**
+     * Sets the sequenceId
+     */
+    public DeleteRequest sequenceId(long sequenceId) {
+        this.sequenceId = sequenceId;
+        return this;
+    }
+
+    public long sequenceId() {
+        return sequenceId;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -208,6 +221,8 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
         refresh = in.readBoolean();
         version = Versions.readVersion(in);
         versionType = VersionType.fromValue(in.readByte());
+        // nocommit conditionalize by version
+        sequenceId = in.readLong();
     }
 
     @Override
@@ -219,6 +234,8 @@ public class DeleteRequest extends ShardReplicationOperationRequest<DeleteReques
         out.writeBoolean(refresh);
         Versions.writeVersion(version, out);
         out.writeByte(versionType.getValue());
+        // nocommit conditionalize by version
+        out.writeLong(sequenceId);
     }
 
     @Override

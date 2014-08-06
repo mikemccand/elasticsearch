@@ -181,11 +181,12 @@ public class TransportDeleteAction extends TransportShardReplicationOperationAct
     protected PrimaryResponse<DeleteResponse, DeleteRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
         DeleteRequest request = shardRequest.request;
         IndexShard indexShard = indicesService.indexServiceSafe(shardRequest.request.index()).shardSafe(shardRequest.shardId);
-        Engine.Delete delete = indexShard.prepareDelete(request.type(), request.id(), request.version(), request.versionType(), Engine.Operation.Origin.PRIMARY);
+        Engine.Delete delete = indexShard.prepareDelete(request.type(), request.id(), request.version(), request.versionType(), request.sequenceId(), Engine.Operation.Origin.PRIMARY);
         indexShard.delete(delete);
-        // update the request with teh version so it will go to the replicas
+        // update the request with the version and sequenceId so it will go to the replicas
         request.versionType(delete.versionType().versionTypeForReplicationAndRecovery());
         request.version(delete.version());
+        request.sequenceId(delete.sequenceId());
 
         assert request.versionType().validateVersionForWrites(request.version());
 
@@ -205,7 +206,7 @@ public class TransportDeleteAction extends TransportShardReplicationOperationAct
     protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
         DeleteRequest request = shardRequest.request;
         IndexShard indexShard = indicesService.indexServiceSafe(shardRequest.request.index()).shardSafe(shardRequest.shardId);
-        Engine.Delete delete = indexShard.prepareDelete(request.type(), request.id(), request.version(), request.versionType(), Engine.Operation.Origin.REPLICA);
+        Engine.Delete delete = indexShard.prepareDelete(request.type(), request.id(), request.version(), request.versionType(), request.sequenceId(), Engine.Operation.Origin.REPLICA);
 
         indexShard.delete(delete);
 

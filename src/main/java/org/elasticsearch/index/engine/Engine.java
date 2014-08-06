@@ -574,7 +574,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
         private long endTime;
         private long sequenceId;
 
-        public Delete(String type, String id, Term uid, long version, VersionType versionType, Origin origin, long startTime, boolean found) {
+        public Delete(String type, String id, Term uid, long version, VersionType versionType, Origin origin, long startTime, boolean found, long sequenceId) {
             this.type = type;
             this.id = id;
             this.uid = uid;
@@ -583,14 +583,15 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
             this.origin = origin;
             this.startTime = startTime;
             this.found = found;
+            this.sequenceId = sequenceId;
         }
 
         public Delete(String type, String id, Term uid) {
-            this(type, id, uid, Versions.MATCH_ANY, VersionType.INTERNAL, Origin.PRIMARY, System.nanoTime(), false);
+            this(type, id, uid, Versions.MATCH_ANY, VersionType.INTERNAL, Origin.PRIMARY, System.nanoTime(), false, -1);
         }
 
         public Delete(Delete template, VersionType versionType) {
-            this(template.type(), template.id(), template.uid(), template.version(), versionType, template.origin(), template.startTime(), template.found());
+            this(template.type(), template.id(), template.uid(), template.version(), versionType, template.origin(), template.startTime(), template.found(), -1);
         }
 
         @Override

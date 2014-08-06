@@ -932,7 +932,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         engine.index(index);
         assertThat(index.version(), equalTo(2l));
 
-        Engine.Delete delete = new Engine.Delete("test", "1", newUid("1"), 1l, VersionType.INTERNAL, PRIMARY, 0, false);
+        Engine.Delete delete = new Engine.Delete("test", "1", newUid("1"), 1l, VersionType.INTERNAL, PRIMARY, 0, false, -1);
         try {
             engine.delete(delete);
             fail();
@@ -941,7 +941,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         }
 
         // future versions should not work as well
-        delete = new Engine.Delete("test", "1", newUid("1"), 3l, VersionType.INTERNAL, PRIMARY, 0, false);
+        delete = new Engine.Delete("test", "1", newUid("1"), 3l, VersionType.INTERNAL, PRIMARY, 0, false, -1);
         try {
             engine.delete(delete);
             fail();
@@ -950,7 +950,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         }
 
         // now actually delete
-        delete = new Engine.Delete("test", "1", newUid("1"), 2l, VersionType.INTERNAL, PRIMARY, 0, false);
+        delete = new Engine.Delete("test", "1", newUid("1"), 2l, VersionType.INTERNAL, PRIMARY, 0, false, -1);
         engine.delete(delete);
         assertThat(delete.version(), equalTo(3l));
 
@@ -985,7 +985,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
 
         engine.flush(new Engine.Flush());
 
-        Engine.Delete delete = new Engine.Delete("test", "1", newUid("1"), 1l, VersionType.INTERNAL, PRIMARY, 0, false);
+        Engine.Delete delete = new Engine.Delete("test", "1", newUid("1"), 1l, VersionType.INTERNAL, PRIMARY, 0, false, -1);
         try {
             engine.delete(delete);
             fail();
@@ -994,7 +994,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         }
 
         // future versions should not work as well
-        delete = new Engine.Delete("test", "1", newUid("1"), 3l, VersionType.INTERNAL, PRIMARY, 0, false);
+        delete = new Engine.Delete("test", "1", newUid("1"), 3l, VersionType.INTERNAL, PRIMARY, 0, false, -1);
         try {
             engine.delete(delete);
             fail();
@@ -1005,7 +1005,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         engine.flush(new Engine.Flush());
 
         // now actually delete
-        delete = new Engine.Delete("test", "1", newUid("1"), 2l, VersionType.INTERNAL, PRIMARY, 0, false);
+        delete = new Engine.Delete("test", "1", newUid("1"), 2l, VersionType.INTERNAL, PRIMARY, 0, false, -1);
         engine.delete(delete);
         assertThat(delete.version(), equalTo(3l));
 
@@ -1124,14 +1124,14 @@ public class InternalEngineTests extends ElasticsearchTestCase {
 
         // apply the delete on the replica (skipping the second index)
         delete = new Engine.Delete("test", "1", newUid("1"), 3l
-                , VersionType.INTERNAL.versionTypeForReplicationAndRecovery(), REPLICA, 0, false);
+                                   , VersionType.INTERNAL.versionTypeForReplicationAndRecovery(), REPLICA, 0, false, -1);
         replicaEngine.delete(delete);
         assertThat(delete.version(), equalTo(3l));
 
         // second time delete with same version should fail
         try {
             delete = new Engine.Delete("test", "1", newUid("1"), 3l
-                    , VersionType.INTERNAL.versionTypeForReplicationAndRecovery(), REPLICA, 0, false);
+                                       , VersionType.INTERNAL.versionTypeForReplicationAndRecovery(), REPLICA, 0, false, -1);
             replicaEngine.delete(delete);
             fail("excepted VersionConflictEngineException to be thrown");
         } catch (VersionConflictEngineException e) {
@@ -1264,7 +1264,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         engine.index(new Engine.Index(null, newUid("1"), doc, 1, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false));
 
         // Delete document we just added:
-        engine.delete(new Engine.Delete("test", "1", newUid("1"), 10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false));
+        engine.delete(new Engine.Delete("test", "1", newUid("1"), 10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false, -1));
         
         // Get should not find the document
         Engine.GetResult getResult = engine.get(new Engine.Get(true, newUid("1")));
@@ -1278,7 +1278,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         }
 
         // Delete non-existent document
-        engine.delete(new Engine.Delete("test", "2", newUid("2"), 10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false));
+        engine.delete(new Engine.Delete("test", "2", newUid("2"), 10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false, -1));
 
         // Get should not find the document (we never indexed uid=2):
         getResult = engine.get(new Engine.Get(true, newUid("2")));
