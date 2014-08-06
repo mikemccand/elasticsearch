@@ -497,10 +497,15 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
 
         // nocommit it's too late to make sequenceId here?  we need to do it higher up, so the doc that's sent to replicas already has it
         // nocommit when replaying xlog we must use its sequenceId, not make our own here:
-        long sequenceId = nextSequenceId.incrementAndGet();
-        create.setSequenceId(sequenceId);
-
-        System.out.println("create: seqId=" + sequenceId);
+        long sequenceId = create.sequenceId();
+        if (sequenceId == -1) {
+            System.out.println("create: assign seqId=" + sequenceId);
+            // Wasn't yet assigned
+            sequenceId = nextSequenceId.incrementAndGet();
+            create.setSequenceId(sequenceId);
+        } else {
+            System.out.println("create: reuse seqId=" + sequenceId);
+        }
 
         // nocommit is it correct to add it to parent & children?
         for (Document doc : create.docs()) {
@@ -580,6 +585,7 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
                 }
             }
 
+            // nocommit how does this version logic work across shards?  why is each shard re-computing the version update?
             long updatedVersion;
             long expectedVersion = index.version();
             if (index.versionType().isVersionConflictForWrites(currentVersion, expectedVersion)) {
@@ -593,8 +599,15 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
 
             // nocommit it's too late to make sequenceId here?  we need to do it higher up, so the doc that's sent to replicas already has it
             // nocommit when replaying xlog we must use its sequenceId, not make our own here:
-            long sequenceId = nextSequenceId.incrementAndGet();
-            index.setSequenceId(sequenceId);
+            long sequenceId = index.sequenceId();
+            if (sequenceId == -1) {
+                sequenceId = nextSequenceId.incrementAndGet();
+                index.setSequenceId(sequenceId);
+                System.out.println("index: assign seqId=" + sequenceId);
+                new Throwable().printStackTrace(System.out);
+            } else {
+                System.out.println("index: reuse seqId=" + sequenceId);
+            }
 
             // nocommit is it correct to add it to parent & children?
             for (Document doc : index.docs()) {

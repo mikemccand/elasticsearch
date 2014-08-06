@@ -387,7 +387,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
         private final boolean canHaveDuplicates;
 
         private final long startTime;
-        private long sequenceId;
+        private long sequenceId = -1;
         private long endTime;
 
         public IndexingOperation(DocumentMapper docMapper, Term uid, ParsedDocument doc, long version, VersionType versionType, Origin origin, long startTime, boolean canHaveDuplicates) {
@@ -572,7 +572,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
 
         private final long startTime;
         private long endTime;
-        private long sequenceId;
+        private long sequenceId = -1;
 
         public Delete(String type, String id, Term uid, long version, VersionType versionType, Origin origin, long startTime, boolean found, long sequenceId) {
             this.type = type;
@@ -674,7 +674,7 @@ public interface Engine extends IndexShardComponent, CloseableComponent {
 
         private final long startTime;
         private long endTime;
-        private long sequenceId;
+        private long sequenceId = -1;
 
         public DeleteByQuery(Query query, BytesReference source, @Nullable String[] filteringAliases, @Nullable Filter aliasFilter, Filter parentFilter, Operation.Origin origin, long startTime, String... types) {
             this.query = query;
