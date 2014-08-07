@@ -1261,7 +1261,7 @@ public class InternalEngineTests extends ElasticsearchTestCase {
         document.add(new TextField("value", "test1", Field.Store.YES));
 
         ParsedDocument doc = testParsedDocument("1", "1", "test", null, -1, -1, document, Lucene.STANDARD_ANALYZER, B_2, false);
-        engine.index(new Engine.Index(null, newUid("1"), doc, 1, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false));
+        engine.index(new Engine.Index(null, newUid("1"), doc, 1, VersionType.EXTERNAL, -1, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false));
 
         // Delete document we just added:
         engine.delete(new Engine.Delete("test", "1", newUid("1"), 10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), false, -1));
