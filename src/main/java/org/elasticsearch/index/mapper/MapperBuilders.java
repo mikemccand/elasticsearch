@@ -65,6 +65,10 @@ public final class MapperBuilders {
         return new VersionFieldMapper.Builder();
     }
 
+    public static SequenceIdFieldMapper.Builder seqenceId() {
+        return new SequenceIdFieldMapper.Builder();
+    }
+
     public static TypeFieldMapper.Builder type() {
         return new TypeFieldMapper.Builder();
     }

@@ -123,6 +123,7 @@ public class DocumentMapperParser extends AbstractIndexComponent {
                 .put(TTLFieldMapper.NAME, new TTLFieldMapper.TypeParser())
                 .put(UidFieldMapper.NAME, new UidFieldMapper.TypeParser())
                 .put(VersionFieldMapper.NAME, new VersionFieldMapper.TypeParser())
+                .put(SequenceIdFieldMapper.NAME, new SequenceIdFieldMapper.TypeParser())
                 .put(IdFieldMapper.NAME, new IdFieldMapper.TypeParser())
                 .put(FieldNamesFieldMapper.NAME, new FieldNamesFieldMapper.TypeParser())
                 .immutableMap();

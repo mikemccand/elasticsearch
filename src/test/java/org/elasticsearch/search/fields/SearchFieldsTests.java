@@ -72,34 +72,43 @@ public class SearchFieldsTests extends ElasticsearchIntegrationTest {
                 .field("field3", "value3")
                 .endObject()).execute().actionGet();
 
-        client().admin().indices().prepareRefresh().execute().actionGet();
+        System.out.println("refresh");
+        refresh();
+        //client().admin().indices().prepareRefresh().execute().actionGet();
 
+        System.out.println("done refresh");
         SearchResponse searchResponse = client().prepareSearch().setQuery(matchAllQuery()).addField("field1").execute().actionGet();
+        System.out.println("done query");
         assertThat(searchResponse.getHits().getTotalHits(), equalTo(1l));
         assertThat(searchResponse.getHits().hits().length, equalTo(1));
         assertThat(searchResponse.getHits().getAt(0).fields().size(), equalTo(1));
         assertThat(searchResponse.getHits().getAt(0).fields().get("field1").value().toString(), equalTo("value1"));
 
         // field2 is not stored, check that it gets extracted from source
+        System.out.println("start query2");
         searchResponse = client().prepareSearch().setQuery(matchAllQuery()).addField("field2").execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), equalTo(1l));
         assertThat(searchResponse.getHits().hits().length, equalTo(1));
         assertThat(searchResponse.getHits().getAt(0).fields().size(), equalTo(1));
         assertThat(searchResponse.getHits().getAt(0).fields().get("field2").value().toString(), equalTo("value2"));
+        System.out.println("done query2");
 
         searchResponse = client().prepareSearch().setQuery(matchAllQuery()).addField("field3").execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), equalTo(1l));
         assertThat(searchResponse.getHits().hits().length, equalTo(1));
         assertThat(searchResponse.getHits().getAt(0).fields().size(), equalTo(1));
         assertThat(searchResponse.getHits().getAt(0).fields().get("field3").value().toString(), equalTo("value3"));
+        System.out.println("done query3");
 
         searchResponse = client().prepareSearch().setQuery(matchAllQuery()).addField("*").execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), equalTo(1l));
         assertThat(searchResponse.getHits().hits().length, equalTo(1));
         assertThat(searchResponse.getHits().getAt(0).source(), nullValue());
+        System.out.println("GOT: " + searchResponse.getHits().getAt(0).fields());
         assertThat(searchResponse.getHits().getAt(0).fields().size(), equalTo(2));
         assertThat(searchResponse.getHits().getAt(0).fields().get("field1").value().toString(), equalTo("value1"));
         assertThat(searchResponse.getHits().getAt(0).fields().get("field3").value().toString(), equalTo("value3"));
+        System.out.println("done query4");
 
         searchResponse = client().prepareSearch().setQuery(matchAllQuery()).addField("*").addField("_source").execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), equalTo(1l));
@@ -108,6 +117,7 @@ public class SearchFieldsTests extends ElasticsearchIntegrationTest {
         assertThat(searchResponse.getHits().getAt(0).fields().size(), equalTo(2));
         assertThat(searchResponse.getHits().getAt(0).fields().get("field1").value().toString(), equalTo("value1"));
         assertThat(searchResponse.getHits().getAt(0).fields().get("field3").value().toString(), equalTo("value3"));
+        System.out.println("done query5");
     }
 
     @Test

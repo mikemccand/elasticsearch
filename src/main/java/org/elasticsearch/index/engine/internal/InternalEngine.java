@@ -75,6 +75,7 @@ import org.elasticsearch.index.engine.*;
 import org.elasticsearch.index.indexing.ShardIndexingService;
 import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.mapper.Uid;
+import org.elasticsearch.index.mapper.internal.SequenceIdFieldMapper;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.merge.policy.ElasticsearchMergePolicy;
 import org.elasticsearch.index.merge.policy.MergePolicyProvider;
@@ -99,7 +100,7 @@ import com.google.common.collect.Lists;
 public class InternalEngine extends AbstractIndexShardComponent implements Engine {
 
     // nocommit move somewhere more appropriate:
-    private static final String SEQUENCE_ID_FIELD = "_sequenceId";
+    private static final String SEQUENCE_ID_FIELD = SequenceIdFieldMapper.NAME;
 
     private volatile boolean failEngineOnCorruption;
     private volatile ByteSizeValue indexingBufferSize;
@@ -509,9 +510,8 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
 
         // nocommit is it correct to add it to parent & children?
         for (Document doc : create.docs()) {
-            // nocommit do we need better abstraction...  use LongFieldMapper? at least the field name should be a constant somewhere!
-            // nocommit this field needs to be in mappings somehow?
-            doc.add(new LongField(SEQUENCE_ID_FIELD, sequenceId, Field.Store.YES));
+            // nocommit should the SequenceIdFieldMapper add this instead?
+            doc.add(new LongField(SEQUENCE_ID_FIELD, sequenceId, Field.Store.NO));
         }
 
         if (create.docs().size() > 1) {
@@ -603,17 +603,15 @@ public class InternalEngine extends AbstractIndexShardComponent implements Engin
             if (sequenceId == -1) {
                 sequenceId = nextSequenceId.incrementAndGet();
                 index.setSequenceId(sequenceId);
-                System.out.println("index: assign seqId=" + sequenceId);
-                new Throwable().printStackTrace(System.out);
+                System.out.println(Thread.currentThread().getName() + ": index: assign seqId=" + sequenceId);
             } else {
-                System.out.println("index: reuse seqId=" + sequenceId);
+                System.out.println(Thread.currentThread().getName() + ": index: reuse seqId=" + sequenceId);
             }
 
             // nocommit is it correct to add it to parent & children?
             for (Document doc : index.docs()) {
-                // nocommit do we need better abstraction...  use LongFieldMapper? at least the field name should be a constant somewhere!
-                // nocommit this field needs to be in mappings somehow?
-                doc.add(new LongField(SEQUENCE_ID_FIELD, sequenceId, Field.Store.YES));
+                // nocommit should the SequenceIdFieldMapper add this instead?
+                doc.add(new LongField(SEQUENCE_ID_FIELD, sequenceId, Field.Store.NO));
             }
             System.out.println("index: seqId=" + sequenceId + " docs=" + index.docs());
             index.updateVersion(updatedVersion);
