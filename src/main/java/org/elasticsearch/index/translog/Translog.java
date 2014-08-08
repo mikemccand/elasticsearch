@@ -43,7 +43,6 @@ import org.elasticsearch.index.shard.IndexShardComponent;
 import java.io.IOException;
 import java.io.InputStream;
 
-
 /**
  *
  */
@@ -252,7 +251,8 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
     }
 
     static class Create implements Operation {
-        public static final int SERIALIZATION_FORMAT = 6;
+        // 7: adds sequenceId
+        public static final int SERIALIZATION_FORMAT = 7;
 
         private String id;
         private String type;
@@ -372,6 +372,9 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             if (version >= 6) {
                 this.versionType = VersionType.fromValue(in.readByte());
             }
+            if (version >= 7) {
+                this.sequenceId = in.readVLong();
+            }
 
             assert versionType.validateVersionForWrites(version);
         }
@@ -398,11 +401,14 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             out.writeLong(timestamp);
             out.writeLong(ttl);
             out.writeByte(versionType.getValue());
+            assert sequenceId >= 0;
+            out.writeVLong(sequenceId);
         }
     }
 
     static class Index implements Operation {
-        public static final int SERIALIZATION_FORMAT = 6;
+        // 7: adds sequenceId
+        public static final int SERIALIZATION_FORMAT = 7;
 
         private String id;
         private String type;
@@ -523,6 +529,9 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
                 if (version >= 6) {
                     this.versionType = VersionType.fromValue(in.readByte());
                 }
+                if (version >= 7) {
+                    this.sequenceId = in.readVLong();
+                }
             } catch (Exception e) {
                 throw new ElasticsearchException("failed to read [" + type + "][" + id + "]", e);
             }
@@ -552,11 +561,14 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             out.writeLong(timestamp);
             out.writeLong(ttl);
             out.writeByte(versionType.getValue());
+            assert sequenceId >= 0;
+            out.writeVLong(sequenceId);
         }
     }
 
     static class Delete implements Operation {
-        public static final int SERIALIZATION_FORMAT = 2;
+        // 3: adds sequenceId
+        public static final int SERIALIZATION_FORMAT = 3;
 
         private Term uid;
         private long version = Versions.MATCH_ANY;
@@ -626,7 +638,9 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
                 this.versionType = VersionType.fromValue(in.readByte());
             }
             assert versionType.validateVersionForWrites(version);
-
+            if (version >= 3) {
+                this.sequenceId = in.readVLong();
+            }
         }
 
         @Override
@@ -636,12 +650,15 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             out.writeString(uid.text());
             out.writeLong(version);
             out.writeByte(versionType.getValue());
+            assert sequenceId >= 0;
+            out.writeVLong(sequenceId);
         }
     }
 
     static class DeleteByQuery implements Operation {
 
-        public static final int SERIALIZATION_FORMAT = 2;
+        // 3: adds sequenceId
+        public static final int SERIALIZATION_FORMAT = 3;
         private BytesReference source;
         @Nullable
         private String[] filteringAliases;
@@ -720,6 +737,9 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
                     }
                 }
             }
+            if (version >= 3) {
+                sequenceId = in.readVLong();
+            }
         }
 
         @Override
@@ -738,6 +758,8 @@ public interface Translog extends IndexShardComponent, CloseableIndexComponent, 
             } else {
                 out.writeVInt(0);
             }
+            assert sequenceId >= 0;
+            out.writeVLong(sequenceId);
         }
     }
 }
