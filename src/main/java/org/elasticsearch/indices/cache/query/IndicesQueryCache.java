@@ -432,7 +432,7 @@ public class IndicesQueryCache extends AbstractComponent implements RemovalListe
         // TODO: tricky to get around this, need to parse and order all, which can be expensive
         return new Key(context.indexShard(),
                 ((DirectoryReader) context.searcher().getIndexReader()).getVersion(),
-                request.cacheKey());
+                request.cacheKey(context));
     }
 
     /**

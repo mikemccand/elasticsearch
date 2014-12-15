@@ -69,5 +69,5 @@ public interface ShardSearchRequest {
     /**
      * Returns the cache key for this shard search request, based on its content
      */
-    BytesReference cacheKey() throws IOException;
+    BytesReference cacheKey(SearchContext context) throws IOException;
 }

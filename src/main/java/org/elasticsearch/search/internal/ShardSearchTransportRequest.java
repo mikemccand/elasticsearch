@@ -163,12 +163,12 @@ public class ShardSearchTransportRequest extends TransportRequest implements Sha
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        shardSearchLocalRequest.innerWriteTo(out, false);
+        shardSearchLocalRequest.innerWriteTo(out, false, null);
         OriginalIndices.writeOriginalIndices(originalIndices, out);
     }
 
     @Override
-    public BytesReference cacheKey() throws IOException {
-        return shardSearchLocalRequest.cacheKey();
+    public BytesReference cacheKey(SearchContext context) throws IOException {
+        return shardSearchLocalRequest.cacheKey(context);
     }
 }

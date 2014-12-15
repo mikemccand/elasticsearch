@@ -23,8 +23,8 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.indices.stats.CommonStats;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags.Flag;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
@@ -41,12 +41,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.merge.policy.TieredMergePolicyProvider;
 import org.elasticsearch.index.merge.scheduler.ConcurrentMergeSchedulerProvider;
 import org.elasticsearch.index.query.FilterBuilders;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.store.support.AbstractIndexStore;
 import org.elasticsearch.indices.cache.query.IndicesQueryCache;
 import org.elasticsearch.search.sort.SortOrder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
 import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -54,6 +55,7 @@ import java.util.EnumSet;
 import java.util.Random;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.filteredQuery;
@@ -296,6 +298,42 @@ public class IndexStatsTests extends ElasticsearchIntegrationTest {
         assertThat(client().prepareSearch("idx").setSearchType(SearchType.COUNT).setQueryCache(true).get().getHits().getTotalHits(), equalTo((long) numDocs));
         assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMemorySizeInBytes(), greaterThan(0l));
     }
+
+    public void testRangeQueryCaching() throws Exception {
+        assertAcked(client().admin().indices().prepareCreate("idx").setSettings(
+                                 IndicesQueryCache.INDEX_CACHE_QUERY_ENABLED, true,
+                                 SETTING_NUMBER_OF_SHARDS, 1,
+                                 SETTING_NUMBER_OF_REPLICAS, 0).get());
+        ensureGreen();
+        client().prepareIndex("idx", "type", "0").setSource("field", 4).execute().actionGet();
+        refresh();
+
+        // Nothing in the cache (no queries yet):
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMemorySizeInBytes(), equalTo(0l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getHitCount(), equalTo(0l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMissCount(), equalTo(0l));
+
+        // First time, cache miss:
+        assertThat(client().prepareSearch("idx").setSearchType(SearchType.COUNT).
+                   setQuery(QueryBuilders.rangeQuery("field").from(0).to(10)).get().getHits().getTotalHits(), equalTo(1l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMemorySizeInBytes(), greaterThan(0l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getHitCount(), equalTo(0l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMissCount(), equalTo(1l));
+
+        // Second time, cache hit:
+        assertThat(client().prepareSearch("idx").setSearchType(SearchType.COUNT).
+                   setQuery(QueryBuilders.rangeQuery("field").from(0).to(10)).get().getHits().getTotalHits(), equalTo(1l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMemorySizeInBytes(), greaterThan(0l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getHitCount(), equalTo(1l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMissCount(), equalTo(1l));
+
+        // Third time, new range query, but still match all for this index:
+        assertThat(client().prepareSearch("idx").setSearchType(SearchType.COUNT).
+                   setQuery(QueryBuilders.rangeQuery("field").from(0).to(11)).get().getHits().getTotalHits(), equalTo(1l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMemorySizeInBytes(), greaterThan(0l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getHitCount(), equalTo(2l));
+        assertThat(client().admin().indices().prepareStats("idx").setQueryCache(true).get().getTotal().getQueryCache().getMissCount(), equalTo(1l));
+    }        
 
 
     @Test

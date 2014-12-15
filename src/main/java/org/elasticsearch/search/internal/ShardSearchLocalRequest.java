@@ -19,6 +19,7 @@
 
 package org.elasticsearch.search.internal;
 
+import org.elasticsearch.action.count.RewriteMatchAllRangeFilters;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -228,7 +229,7 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
         queryCache = in.readOptionalBoolean();
     }
 
-    protected void innerWriteTo(StreamOutput out, boolean asKey) throws IOException {
+    protected void innerWriteTo(StreamOutput out, boolean asKey, SearchContext context) throws IOException {
         out.writeString(index);
         out.writeVInt(shardId);
         out.writeByte(searchType.id());
@@ -241,7 +242,11 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
             out.writeBoolean(true);
             scroll.writeTo(out);
         }
-        out.writeBytesReference(source);
+        if (asKey) {
+            out.writeBytesReference(RewriteMatchAllRangeFilters.rewriteRangeFilters(source, context.searcher(), context.queryParserService()));
+        } else {
+            out.writeBytesReference(source);
+        }
         out.writeBytesReference(extraSource);
         out.writeStringArray(types);
         out.writeStringArrayNullable(filteringAliases);
@@ -261,9 +266,9 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
     }
 
     @Override
-    public BytesReference cacheKey() throws IOException {
+    public BytesReference cacheKey(SearchContext context) throws IOException {
         BytesStreamOutput out = new BytesStreamOutput();
-        this.innerWriteTo(out, true);
+        this.innerWriteTo(out, true, context);
         // copy it over, most requests are small, we might as well copy to make sure we are not sliced...
         // we could potentially keep it without copying, but then pay the price of extra unused bytes up to a page
         return out.bytes().copyBytesArray();

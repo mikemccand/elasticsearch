@@ -178,6 +178,9 @@ public class TransportCountAction extends TransportBroadcastOperationAction<Coun
             }
             BytesReference source = request.querySource();
             if (source != null && source.length() > 0) {
+                // nocommit just here to help broaden test coverage of the rewriting
+                source = RewriteMatchAllRangeFilters.rewriteRangeFilters(source, context.searcher(), indexService.queryParserService());
+
                 try {
                     QueryParseContext.setTypes(request.types());
                     context.parsedQuery(indexService.queryParserService().parseQuery(source));
