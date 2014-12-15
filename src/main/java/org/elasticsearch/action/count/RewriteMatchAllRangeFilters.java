@@ -90,7 +90,7 @@ public class RewriteMatchAllRangeFilters {
                     minLong = min;
                 }
                 long max = NumericUtils.getMaxLong(terms);
-                if (maxLong == null || max < maxLong.longValue()) {
+                if (maxLong == null || max > maxLong.longValue()) {
                     maxLong = max;
                 }
             }
@@ -364,8 +364,8 @@ public class RewriteMatchAllRangeFilters {
     }
 
     public static BytesReference rewriteRangeFilters(BytesReference source,
-                                                                  IndexSearcher searcher,
-                                                                  IndexQueryParserService parserService) {
+                                                     IndexSearcher searcher,
+                                                     IndexQueryParserService parserService) {
         try {
             if (source == null || source.length() == 0) {
                 // Empty source means matches all docs?
