@@ -100,6 +100,7 @@ import org.elasticsearch.index.merge.scheduler.ConcurrentMergeSchedulerProvider;
 import org.elasticsearch.index.merge.scheduler.MergeSchedulerModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.store.StoreModule;
+import org.elasticsearch.index.store.fs.FsDirectoryService;
 import org.elasticsearch.index.translog.TranslogService;
 import org.elasticsearch.index.translog.fs.FsTranslog;
 import org.elasticsearch.index.translog.fs.FsTranslogFile;
@@ -483,6 +484,9 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
             // see #7210
             builder.put(RecoverySettings.INDICES_RECOVERY_COMPRESS, false);
         }
+
+        builder.put(FsDirectoryService.SLOW_IO_LOG_SETTING, random.nextBoolean());
+
         return builder;
     }
 

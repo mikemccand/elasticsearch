@@ -42,6 +42,8 @@ public abstract class FsDirectoryService extends DirectoryService implements Sto
 
     private final CounterMetric rateLimitingTimeInNanos = new CounterMetric();
 
+    public static final String SLOW_IO_LOG_SETTING = "index.store.fs.log_slow_io";
+
     public FsDirectoryService(ShardId shardId, @IndexSettings Settings indexSettings, IndexStore indexStore) {
         super(shardId, indexSettings);
         this.indexStore = indexStore;
@@ -73,12 +75,17 @@ public abstract class FsDirectoryService extends DirectoryService implements Sto
     
     @Override
     public Directory[] build() throws IOException {
+        boolean logSlowIO = indexSettings.getAsBoolean(SLOW_IO_LOG_SETTING, false);
         Path[] locations = indexStore.shardIndexLocations(shardId);
         Directory[] dirs = new Directory[locations.length];
         for (int i = 0; i < dirs.length; i++) {
             Files.createDirectories(locations[i]);
             Directory wrapped = newFSDirectory(locations[i], buildLockFactory());
-            dirs[i] = new RateLimitedFSDirectory(wrapped, this, this) ;
+            wrapped = new RateLimitedFSDirectory(wrapped, this, this);
+            if (logSlowIO) {
+                wrapped = new SlowIOLoggingDirectoryWrapper(indexSettings, shardId, wrapped);
+            }
+            dirs[i] = wrapped;
         }
         return dirs;
     }
