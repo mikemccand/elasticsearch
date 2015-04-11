@@ -1022,7 +1022,7 @@ public class InternalIndexShard extends AbstractIndexShardComponent implements I
         @Override
         public void run() {
             final Engine engine = engine();
-            if (engine == null || engine().possibleMergeNeeded() == false) {
+            if (engine == null || engine.possibleMergeNeeded() == false) {
                 synchronized (mutex) {
                     if (state != IndexShardState.CLOSED) {
                         mergeScheduleFuture = threadPool.schedule(mergeInterval, ThreadPool.Names.SAME, this);
