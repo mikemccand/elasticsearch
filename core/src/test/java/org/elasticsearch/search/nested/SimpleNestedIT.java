@@ -80,6 +80,7 @@ public class SimpleNestedIT extends ESIntegTestCase {
         waitForRelocation(ClusterHealthStatus.GREEN);
         // flush, so we fetch it from the index (as see that we filter nested docs)
         flush();
+        refresh();
         GetResponse getResponse = client().prepareGet("test", "type1", "1").get();
         assertThat(getResponse.isExists(), equalTo(true));
         assertThat(getResponse.getSourceAsBytes(), notNullValue());
@@ -126,6 +127,7 @@ public class SimpleNestedIT extends ESIntegTestCase {
         waitForRelocation(ClusterHealthStatus.GREEN);
         // flush, so we fetch it from the index (as see that we filter nested docs)
         flush();
+        refresh();
         assertDocumentCount("test", 6);
 
         searchResponse = client().prepareSearch("test").setQuery(nestedQuery("nested1",
@@ -183,6 +185,7 @@ public class SimpleNestedIT extends ESIntegTestCase {
 
         // flush, so we fetch it from the index (as see that we filter nested docs)
         flush();
+        refresh();
         GetResponse getResponse = client().prepareGet("test", "type1", "1").execute().actionGet();
         assertThat(getResponse.isExists(), equalTo(true));
         waitForRelocation(ClusterHealthStatus.GREEN);
@@ -1057,14 +1060,9 @@ public class SimpleNestedIT extends ESIntegTestCase {
         assertThat(clusterStatsResponse.getIndicesStats().getSegments().getBitsetMemoryInBytes(), equalTo(0l));
     }
 
-    /**
-     */
     private void assertDocumentCount(String index, long numdocs) {
         IndicesStatsResponse stats = admin().indices().prepareStats(index).clear().setDocs(true).get();
         assertNoFailures(stats);
         assertThat(stats.getIndex(index).getPrimaries().docs.getCount(), is(numdocs));
-
     }
-
-
 }
