@@ -540,8 +540,10 @@ public class MoreLikeThisIT extends ESIntegTestCase {
         for (int i = 0; i < numFields; i++) {
             builders.add(client().prepareIndex("test", "type1", i+"").setSource("field"+i, i+""));
         }
+        System.out.println("\nTEST: now index and refresh");
         indexRandom(true, builders);
 
+        System.out.println("\nTEST: now search");
         logger.info("First check the document matches all indexed docs.");
         MoreLikeThisQueryBuilder mltQuery = moreLikeThisQuery(new Item[] {new Item("test", "type1", doc)})
                 .minTermFreq(0)

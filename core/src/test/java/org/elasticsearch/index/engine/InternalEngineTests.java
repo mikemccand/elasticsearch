@@ -1042,14 +1042,16 @@ public class InternalEngineTests extends ESTestCase {
                 assertEquals(numDocs, test.reader().numDocs());
             }
             engine.forceMerge(true, 1, false, false, false);
-            assertEquals(engine.segments(true).size(), 1);
+            engine.refresh("test");
+            assertEquals(1, engine.segments(true).size());
 
             ParsedDocument doc = testParsedDocument(Integer.toString(0), Integer.toString(0), "test", null, -1, -1, testDocument(), B_1, null);
             Engine.Index index = new Engine.Index(newUid(Integer.toString(0)), doc);
             engine.delete(new Engine.Delete(index.type(), index.id(), index.uid()));
             engine.forceMerge(true, 10, true, false, false); //expunge deletes
 
-            assertEquals(engine.segments(true).size(), 1);
+            engine.refresh("test");
+            assertEquals(1, engine.segments(true).size());
             try (Engine.Searcher test = engine.acquireSearcher("test")) {
                 assertEquals(numDocs - 1, test.reader().numDocs());
                 assertEquals(engine.config().getMergePolicy().toString(), numDocs - 1, test.reader().maxDoc());
@@ -1059,7 +1061,7 @@ public class InternalEngineTests extends ESTestCase {
             index = new Engine.Index(newUid(Integer.toString(1)), doc);
             engine.delete(new Engine.Delete(index.type(), index.id(), index.uid()));
             engine.forceMerge(true, 10, false, false, false); //expunge deletes
-
+            engine.refresh("test");
             assertEquals(engine.segments(true).size(), 1);
             try (Engine.Searcher test = engine.acquireSearcher("test")) {
                 assertEquals(numDocs - 2, test.reader().numDocs());
@@ -1656,6 +1658,7 @@ public class InternalEngineTests extends ESTestCase {
             // no mock directory, no fun.
             engine = createEngine(store, primaryTranslogDir);
         }
+        engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             TopDocs topDocs = searcher.searcher().search(new MatchAllDocsQuery(), randomIntBetween(numDocs, numDocs + 10));
             assertThat(topDocs.totalHits, equalTo(numDocs));
@@ -1812,6 +1815,8 @@ public class InternalEngineTests extends ESTestCase {
         engine.close();
         engine.config().setCreate(false);
         engine = new InternalEngine(engine.config(), false); // we need to reuse the engine config unless the parser.mappingModified won't work
+        // nocommit ... should we refresh after xlog replay on init???
+        engine.refresh("test");
 
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             TopDocs topDocs = searcher.searcher().search(new MatchAllDocsQuery(), randomIntBetween(numDocs, numDocs + 10));
@@ -1858,6 +1863,7 @@ public class InternalEngineTests extends ESTestCase {
 
         engine.close();
         engine = createEngine(store, primaryTranslogDir);
+        engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             TopDocs topDocs = searcher.searcher().search(new MatchAllDocsQuery(), numDocs + 1);
             assertThat(topDocs.totalHits, equalTo(numDocs + 1));
@@ -1866,11 +1872,10 @@ public class InternalEngineTests extends ESTestCase {
         assertEquals(flush ? 1 : 2, parser.recoveredOps.get());
         engine.delete(new Engine.Delete("test", Integer.toString(randomId), newUid(uuidValue)));
         if (randomBoolean()) {
-            engine.refresh("test");
-        } else {
             engine.close();
             engine = createEngine(store, primaryTranslogDir);
         }
+        engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             TopDocs topDocs = searcher.searcher().search(new MatchAllDocsQuery(), numDocs);
             assertThat(topDocs.totalHits, equalTo(numDocs));
@@ -1952,6 +1957,7 @@ public class InternalEngineTests extends ESTestCase {
         }
 
         engine = createEngine(store, primaryTranslogDir); // and recover again!
+        engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             TopDocs topDocs = searcher.searcher().search(new MatchAllDocsQuery(), randomIntBetween(numDocs, numDocs + 10));
             assertThat(topDocs.totalHits, equalTo(numDocs));
