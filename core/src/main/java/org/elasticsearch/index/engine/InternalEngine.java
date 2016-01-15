@@ -298,26 +298,27 @@ public class InternalEngine extends Engine {
     private SearcherManager createSearcherManager() throws EngineException {
         DirectoryReader directoryReader = null;
         SearcherManager searcherManager = null;
+        boolean success = false;
         try {
-            try {
-                directoryReader = ElasticsearchDirectoryReader.wrap(DirectoryReader.open(indexWriter, true), shardId);
-                searcherManager = new SearcherManager(directoryReader, searcherFactory);
-                if (lastCommittedSegmentInfos == null) {
-                    lastCommittedSegmentInfos = readLastCommittedSegmentInfos(searcherManager, store);
-                }
-                return searcherManager;
-            } catch (IOException e) {
-                maybeFailEngine("start", e);
-                try {
-                    indexWriter.rollback();
-                } catch (IOException e1) { // iw is closed below
-                    e.addSuppressed(e1);
-                }
-                throw new EngineCreationFailureException(shardId, "failed to open reader on writer", e);
+            directoryReader = ElasticsearchDirectoryReader.wrap(DirectoryReader.open(indexWriter, true), shardId);
+            searcherManager = new SearcherManager(directoryReader, searcherFactory);
+            if (lastCommittedSegmentInfos == null) {
+                lastCommittedSegmentInfos = readLastCommittedSegmentInfos(searcherManager, store);
             }
+            success = true;
+            return searcherManager;
+        } catch (IOException e) {
+            maybeFailEngine("start", e);
+            try {
+                indexWriter.rollback();
+            } catch (IOException e1) { // iw is closed above, in ctor finally clause
+                e.addSuppressed(e1);
+            }
+            throw new EngineCreationFailureException(shardId, "failed to open reader on writer", e);
         } finally {
-            if (searcherManager == null) { // release everything we created on a failure
-                IOUtils.closeWhileHandlingException(directoryReader, indexWriter);
+            if (success == false) {
+                // release everything we may have created on a failure
+                IOUtils.closeWhileHandlingException(directoryReader, searcherManager);
             }
         }
     }
