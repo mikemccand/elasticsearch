@@ -127,8 +127,9 @@ public class GetActionIT extends ESIntegTestCase {
         assertThat(response.getField("field1").getValues().get(0).toString(), equalTo("value1"));
         assertThat(response.getField("field2"), nullValue());
 
-        logger.info("--> flush the index, so we load it from it");
+        logger.info("--> flush and refresh the index, so we load it from it");
         flush();
+        refresh();
 
         logger.info("--> realtime get 1 (loaded from index)");
         response = client().prepareGet(indexOrAlias(), "type1", "1").get();
@@ -845,6 +846,7 @@ public class GetActionIT extends ESIntegTestCase {
                         .endObject()
                         .endObject()));
         index("test", "my-type1", "1", "some_field", "some text");
+        flush();
         refresh();
 
         GetResponse getResponse = client().prepareGet(indexOrAlias(), "my-type1", "1").setFields("_all").get();
@@ -958,7 +960,8 @@ public class GetActionIT extends ESIntegTestCase {
         //after refresh - document is in translog and also indexed
         assertGetFieldsAlwaysWorks(indexOrAlias(), "doc", "1", fieldsList, "1");
         flush();
-        //after flush - document is in not anymore translog - only indexed
+        refresh();
+        //after flush+refresh - document is in not anymore translog - only indexed
         assertGetFieldsAlwaysWorks(indexOrAlias(), "doc", "1", fieldsList, "1");
     }
 
@@ -971,7 +974,8 @@ public class GetActionIT extends ESIntegTestCase {
         //after refresh - document is in translog and also indexed
         assertGetFieldsAlwaysNull(indexOrAlias(), "doc", "1", fieldsList);
         flush();
-        //after flush - document is in not anymore translog - only indexed
+        refresh();
+        //after flush+refresh - document is in not anymore translog - only indexed
         assertGetFieldsAlwaysNull(indexOrAlias(), "doc", "1", fieldsList);
     }
 
@@ -988,7 +992,8 @@ public class GetActionIT extends ESIntegTestCase {
         assertGetFieldsAlwaysWorks(indexOrAlias(), "doc", "1", fieldsList);
         assertGetFieldsNull(indexOrAlias(), "doc", "1", alwaysNotStoredFieldsList);
         flush();
-        //after flush - document is in not anymore translog - only indexed
+        refresh();
+        //after flush+refresh - document is in not anymore translog - only indexed
         assertGetFieldsAlwaysWorks(indexOrAlias(), "doc", "1", fieldsList);
         assertGetFieldsNull(indexOrAlias(), "doc", "1", alwaysNotStoredFieldsList);
     }
@@ -1028,7 +1033,8 @@ public class GetActionIT extends ESIntegTestCase {
         //after refresh - document is in translog and also indexed
         assertGetFieldsAlwaysNull(indexOrAlias(), "doc", "1", fieldsList);
         flush();
-        //after flush - document is in not anymore translog - only indexed
+        refresh();
+        //after flush+refresh - document is in not anymore translog - only indexed
         assertGetFieldsAlwaysNull(indexOrAlias(), "doc", "1", fieldsList);
     }
 
@@ -1042,7 +1048,8 @@ public class GetActionIT extends ESIntegTestCase {
         //after refresh - document is in translog and also indexed
         assertGetFieldsAlwaysWorks(indexOrAlias(), "doc", "1", fieldsList);
         flush();
-        //after flush - document is in not anymore translog - only indexed
+        refresh();
+        //after flush+refresh - document is in not anymore translog - only indexed
         assertGetFieldsAlwaysWorks(indexOrAlias(), "doc", "1", fieldsList);
     }
 
